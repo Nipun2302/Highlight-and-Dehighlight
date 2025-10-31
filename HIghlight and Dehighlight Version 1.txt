@@ -115,4 +115,4 @@ var highlighter = {
 
 // Initialize
 highlighter.attachInspector(document);
-//////
+// End of code 
