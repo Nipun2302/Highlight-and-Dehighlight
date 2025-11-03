@@ -1,7 +1,7 @@
 ﻿var highlighter = {
     selectedElements: [],
     lastHighlightedElement: null,
-    lastClickedElement: null,
+    lastSelectedElement: null,
     currentX: 0,
     currentY: 0,
 
@@ -49,101 +49,92 @@
 
     // ==================== COMMON ANCESTOR ====================
     findCommonAncestor(el1, el2) {
-        let ancestors1 = [];
-        let current = el1;
-        while (current) {
-            ancestors1.push(current);
-            current = current.parentElement;
-        }
 
-        let current2 = el2;
-        while (current2) {
-            if (ancestors1.includes(current2)) return current2;
-            current2 = current2.parentElement;
-        }
-        return null;
+        if (!el1 || !el2) return null;
+
+        let p1 = el1.parentElement;
+        let p2 = el2.parentElement;
+
+        if (!p1 || !p2) return null;
+
+        if (p1.tagName !== p2.tagName) return null;
+
+        if (p1 === p2) return p1;
+
+		return this.findCommonAncestor(p1, p2);
     },
 
     // ==================== CLICK SELECTION ====================
     selectElementOnClick(e) {
-        const clicked = this.lastHighlightedElement;
-        if (!clicked) return;
+        const currentElement = this.lastHighlightedElement;
+        if (!currentElement) return;
 
-        if (e.shiftKey) {
-            const last = this.lastClickedElement;
+        const lastSelectedElement = this.lastSelectedElement;
 
-            if (last) {
-                // --- Case 1: Same parent ---
-                if (last.parentElement === clicked.parentElement) {
-                    const siblings = Array.from(clicked.parentElement.children)
-                        .filter(c => c.nodeType === 1);
+        if (lastSelectedElement && e.shiftKey) {
 
-                    this.clearSelection();
-                    siblings.forEach(el => this.select(el));
+			const commonAncestor = this.findCommonAncestor(currentElement, lastSelectedElement);
+            if (commonAncestor) {
+                const currentElementXpath = this.getFullXPath(currentElement);
+                const lastSelectedElementXpath = this.getFullXPath(lastSelectedElement);
+				const ancestorXpath = this.getFullXPath(commonAncestor);
 
-                    console.log("✅ Auto-selected all siblings:", siblings);
-                    return;
-                }
-
-                // --- Case 2: Same tag + common ancestor ---
-                if (last.tagName === clicked.tagName) {
-                    const commonAncestor = this.findCommonAncestor(last, clicked);
-                    if (commonAncestor) {
-                        const sameTagElements = Array.from(
-                            commonAncestor.querySelectorAll(last.tagName)
-                        );
-
-                        if (sameTagElements.length > 0) {
-                            this.clearSelection();
-                            sameTagElements.forEach(el => this.select(el));
-
-                            console.log("✅ Auto-selected all elements with same tag under common ancestor:", sameTagElements);
-                            return;
-                        }
-                    }
-                }
-
-                // --- Case 3: Parents share same grandparent ---
-                const parent1 = last.parentElement;
-                const parent2 = clicked.parentElement;
-
-                if (
-                    parent1 && parent2 &&
-                    parent1.parentElement &&
-                    parent1.parentElement === parent2.parentElement
-                ) {
-                    const grandparent = parent1.parentElement;
-
-                    const siblingParents = Array.from(grandparent.children)
-                        .filter(c => c.nodeType === 1 && c.tagName === parent1.tagName);
-
-                    const toSelect = [];
-                    siblingParents.forEach(p => {
-                        Array.from(p.children).forEach(child => toSelect.push(child));
-                    });
-
-                    this.clearSelection();
-                    toSelect.forEach(el => this.select(el));
-
-                    console.log("✅ Auto-selected all children of sibling parents with same tag:", toSelect);
-                    return;
-                }
+                console.log("C:", currentElementXpath);
+                console.log("L:", lastSelectedElementXpath);
+                console.log("A:", ancestorXpath);
+				
+            }
+            else {
+                // --- Normal Click ---
+                this.clearSelection();
+                this.select(currentElement);
+                this.lastSelectedElement = currentElement;
             }
 
-            // --- Default Shift + Click: single selection ---
-            this.clearSelection();
-            this.select(clicked);
-            console.log("Selected element (shift no relation):", clicked);
         } else {
             // --- Normal Click ---
-            this.clearSelection();
-            this.select(clicked);
-            this.lastClickedElement = clicked;
+            const xpath = this.getFullXPath(currentElement);
+            console.log("XPath:", xpath);
 
-            console.log("Selected element:", clicked);
+            this.clearSelection();
+            this.select(currentElement);
+            this.lastSelectedElement = currentElement;
+        }
+    },
+
+    getFullXPath(element) {
+        if (!element || element.nodeType !== Node.ELEMENT_NODE) return '';
+
+        const parts = [];
+        while (element && element.nodeType === Node.ELEMENT_NODE) {
+            let index = 1;
+            let sibling = element.previousElementSibling;
+
+            // Count how many previous siblings have the same tag name
+            while (sibling) {
+                if (sibling.nodeName === element.nodeName) {
+                    index++;
+                }
+                sibling = sibling.previousElementSibling;
+            }
+
+            const tagName = element.nodeName.toLowerCase();
+            const part = `${tagName}[${index}]`;
+            parts.unshift(part);
+            element = element.parentElement;
         }
 
-        console.log("All selected elements:", this.selectedElements);
+        return '/' + parts.join('/');
+    },
+
+    getElementsByXpath(xpath) {
+        const result = [];
+        const evaluator = new XPathEvaluator();
+        const nodes = evaluator.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < nodes.snapshotLength; i++) {
+            result.push(nodes.snapshotItem(i));
+        }
+        return result;
     },
 
     // ==================== SELECTION HELPERS ====================
