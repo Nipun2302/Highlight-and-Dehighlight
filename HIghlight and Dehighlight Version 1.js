@@ -69,13 +69,15 @@
 
             const commonAncestor = this.findCommonAncestor(currentElement, lastSelectedElement);
             if (commonAncestor) {
-                const currentElementXpath = this.getAbsoluteXPath(currentElement);
-                const lastSelectedElementXpath = this.getAbsoluteXPath(lastSelectedElement);
-                const ancestorXpath = this.getAbsoluteXPath(commonAncestor);
+                //const currentElementXpath = this.getAbsoluteXPath(currentElement);
+                //const lastSelectedElementXpath = this.getAbsoluteXPath(lastSelectedElement);
+                //const ancestorXpath = this.getAbsoluteXPath(commonAncestor);
 
-                console.log("C:", currentElementXpath);
-                console.log("L:", lastSelectedElementXpath);
-                console.log("A:", ancestorXpath);
+                const listXpath = this.getListXPath(commonAncestor, currentElement);
+                console.log("List:", listXpath);
+                //console.log("C:", currentElementXpath);
+                //console.log("L:", lastSelectedElementXpath);
+                //console.log("A:", ancestorXpath);
 
             }
             else {
@@ -166,8 +168,32 @@
 
             iframe.addEventListener("load", handleIframeLoad);
         });
+    },
+    getListXPath: function (ancestor, element) {
+        if (element === document.body) {
+            return '/html/body';
+        }
+
+        let ix = 0;
+        const siblings = element.parentNode.childNodes;
+        for (let i = 0; i < siblings.length; i++) {
+            const sibling = siblings[i];
+            if (sibling === element) {
+                if (element.parentNode === ancestor) {
+                    return this.getListXPath(ancestor, element.parentNode) + '/' + element.tagName.toLowerCase();
+                }
+                else {
+                    return this.getListXPath(ancestor, element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix + 1) + ']';
+                }
+            }
+            if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                ix++;
+            }
+        }
     }
+
 };
 
 // Initialize
 highlighter.attachInspector(document);
+
