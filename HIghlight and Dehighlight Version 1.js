@@ -74,7 +74,10 @@
                 //const ancestorXpath = this.getAbsoluteXPath(commonAncestor);
 
                 const listXpath = this.getListXPath(commonAncestor, currentElement);
-                console.log("List:", listXpath);
+                const list = this.getElementsByXpath(listXpath);
+                this.clearSelection();
+                list.forEach(el => this.select(el));
+                //console.log("List:", listXpath);
                 //console.log("C:", currentElementXpath);
                 //console.log("L:", lastSelectedElementXpath);
                 //console.log("A:", ancestorXpath);
