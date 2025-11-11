@@ -2,6 +2,8 @@
     selectedElements: [],
     lastHighlightedElement: null,
     lastSelectedElement: null,
+    lastSelectedXpath: null,
+    numberOfSelectedElements: 0,
     currentX: 0,
     currentY: 0,
 
@@ -74,7 +76,12 @@
                 //const ancestorXpath = this.getAbsoluteXPath(commonAncestor);
 
                 const listXpath = this.getListXPath(commonAncestor, currentElement);
+                this.lastSelectedXpath = listXpath;
+
                 const list = this.getElementsByXpath(listXpath);
+                this.numberOfSelectedElements = list.length;
+
+
                 this.clearSelection();
                 list.forEach(el => this.select(el));
                 //console.log("List:", listXpath);
@@ -85,6 +92,10 @@
             }
             else {
                 // --- Normal Click ---
+                const xpath = this.getAbsoluteXPath(currentElement);
+                this.lastSelectedXpath = xpath;
+                this.numberOfSelectedElements = 1;
+
                 this.clearSelection();
                 this.select(currentElement);
                 this.lastSelectedElement = currentElement;
@@ -93,6 +104,8 @@
         } else {
             // --- Normal Click ---
             const xpath = this.getAbsoluteXPath(currentElement);
+            this.lastSelectedXpath = xpath;
+            this.numberOfSelectedElements = 1;
             console.log("XPath:", xpath);
 
             this.clearSelection();
